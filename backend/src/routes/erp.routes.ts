@@ -35,7 +35,7 @@ router.post("/upload", uploadSingle, async (req, res) => {
     fs.writeFileSync(tempFilePath, file.buffer);
 
     const extraction = await extractInvoiceBestEffort(tempFilePath);
-    const invoice = extraction.result;
+    const invoice = extraction.result || ({} as any);
 
     const { data: extractionRow, error: extractionSaveError } = await supabase
       .from("invoice_extractions")
@@ -452,11 +452,20 @@ router.post("/upload", uploadSingle, async (req, res) => {
     return res.status(200).json(fillNullValues(responseBody));
   } catch (error: any) {
     console.error("ERP upload failed:", error);
+    const safeMessage = (() => {
+      try {
+        if (error instanceof Error) return error.message;
+        if (typeof error === "string") return error;
+        if (error && typeof error.message === "string") return error.message;
+        return `Invoice processing failed: ${JSON.stringify(error)}`;
+      } catch {
+        return "Invoice processing failed (unknown error)";
+      }
+    })();
     return res.status(500).json({
       success: false,
-      message: "Invoice processing failed",
-      error: error.message,
-      stack: error.stack
+      message: safeMessage,
+      error: safeMessage
     });
   } finally {
     // Always clean up temp file regardless of success or failure

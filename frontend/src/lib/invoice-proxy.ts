@@ -32,7 +32,7 @@ export async function invoiceStatus(): Promise<Response> {
     const reachable = response.ok && result?.success === true;
     return Response.json({ reachable, message: reachable ? "Invoice backend is reachable." : "Invoice backend health check failed. Check the configured backend URL." });
   } catch {
-    return Response.json({ reachable: false, message: "The invoice backend is unavailable or starting up. Check INVOICE_BACKEND_URL in the frontend environment, wait for the backend to be live, then retry." });
+    return Response.json({ reachable: false, message: "Start the invoice backend on port 5000, or set INVOICE_BACKEND_URL in frontend/.env.local and restart the frontend." });
   }
 }
 
@@ -61,10 +61,18 @@ export async function proxyInvoiceUpload(request: Request): Promise<Response> {
     const headers = new Headers();
     if (process.env.INVOICE_BACKEND_AUTH_TOKEN) headers.set("Authorization", `Bearer ${process.env.INVOICE_BACKEND_AUTH_TOKEN}`);
     const response = await fetch(new URL("/api/erp/upload", backendUrl()), { method: "POST", body: form, headers, cache: "no-store", redirect: "error", signal: AbortSignal.timeout(timeoutMs()) });
-    const payload = await response.json().catch(() => null);
+    const raw = await response.text().catch(() => "");
+    let payload: any = null;
+    try { payload = JSON.parse(raw); } catch { /* Non-JSON body from the backend or an intermediary. */ }
     if (!response.ok || payload?.success === false) {
-      const message = typeof payload?.message === "string" ? payload.message.slice(0, 500) : "The invoice backend rejected this upload. Check its logs and provider configuration.";
-      return failure(message, response.ok ? 422 : response.status);
+      console.error(`[invoice-proxy] backend rejected upload (HTTP ${response.status}):`, raw.slice(0, 800));
+      const backendMessage = typeof payload?.message === "string" && payload.message.trim() ? payload.message : undefined;
+      const detail = backendMessage
+        ? backendMessage
+        : raw && raw.trim()
+          ? `Backend returned HTTP ${response.status} with a non-JSON response: ${raw.slice(0, 300)}`
+          : `Backend returned HTTP ${response.status} with an empty response body. Confirm INVOICE_BACKEND_URL points to the running ERP backend.`;
+      return failure(`Invoice backend rejected the upload (HTTP ${response.status}). ${detail}`, response.ok ? 422 : response.status);
     }
     if (!payload || (typeof payload.extraction !== "object" && !payload.extraction_provider) || (typeof payload.emission !== "object" && payload.status !== "extraction_empty")) return failure("The backend returned an unexpected invoice response. Confirm INVOICE_BACKEND_URL points to the supplied ERP backend.", 502);
     return Response.json({ success: true, data: normalizeInvoiceResponse(payload, file.name) });
