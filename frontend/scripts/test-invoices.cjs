@@ -30,6 +30,7 @@ let checks = 0;
 async function check(name, task) { await task(); checks++; console.log(`PASS ${name}`); }
 (async () => {
   process.env.INVOICE_BACKEND_URL = "http://127.0.0.1:5000";
+  process.env.INVOICE_BACKEND_RETRY_DELAY_MS = "1";
   delete process.env.INVOICE_BACKEND_AUTH_TOKEN;
   let forwarded = 0;
   global.fetch = async (url, options) => {
@@ -89,7 +90,22 @@ async function check(name, task) { await task(); checks++; console.log(`PASS ${n
     global.fetch = async () => Response.json({ success: false, message: "Country could not be detected", stack: "private" }, { status: 400 });
     let response = await proxyInvoiceUpload(request(pdf())); assert.equal(response.status, 400); assert.match((await response.json()).message, /Country could not/);
     global.fetch = async () => Response.json({ success: false, message: "Provider failure" }); assert.equal((await proxyInvoiceUpload(request(pdf()))).status, 422);
-    global.fetch = async () => new Response("<html>wrong service</html>"); assert.equal((await proxyInvoiceUpload(request(pdf()))).status, 502);
+    let gatewayAttempts = 0;
+    const htmlGateway = () => new Response("<html>wrong service</html>", { status: 502 });
+    global.fetch = async () => { gatewayAttempts++; return htmlGateway(); };
+    const gateway = await proxyInvoiceUpload(request(pdf()));
+    assert.equal(gateway.status, 502); assert.equal(gatewayAttempts, 2, "transient gateway failures are retried once");
+    const gatewayMessage = (await gateway.json()).message;
+    assert.ok(!gatewayMessage.includes("<html"), "HTML from an intermediary is never shown to the user");
+    assert.match(gatewayMessage, /HTML error page/);
+    gatewayAttempts = 0;
+    global.fetch = async () => { gatewayAttempts++; return new Response("<html>not the invoice backend</html>"); };
+    const wrongService = await proxyInvoiceUpload(request(pdf()));
+    assert.equal(wrongService.status, 502); assert.equal(gatewayAttempts, 1, "a healthy-looking HTML answer is not retried");
+    assert.match((await wrongService.json()).message, /HTML error page/);
+    gatewayAttempts = 0;
+    global.fetch = async () => ++gatewayAttempts === 1 ? htmlGateway() : Response.json(raw);
+    assert.equal((await proxyInvoiceUpload(request(pdf()))).status, 200); assert.equal(gatewayAttempts, 2);
     global.fetch = async () => { throw new TypeError("Connection refused"); }; assert.equal((await proxyInvoiceUpload(request(pdf()))).status, 502); assert.equal((await (await invoiceStatus()).json()).reachable, false);
     global.fetch = async () => { throw new DOMException("Timed out", "TimeoutError"); }; assert.equal((await proxyInvoiceUpload(request(pdf()))).status, 504);
     global.fetch = async () => Response.json({ success: true }); assert.equal((await (await invoiceStatus()).json()).reachable, true);

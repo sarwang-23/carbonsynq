@@ -11,6 +11,27 @@ function timeoutMs() {
   return Number.isFinite(value) ? Math.max(1000, Math.min(value, 600000)) : 180000;
 }
 const failure = (message: string, status: number) => Response.json({ success: false, message }, { status });
+const sleep = (ms: number) => new Promise(resolve => setTimeout(resolve, ms));
+const looksLikeHtml = (raw: string) => /^\s*<(!doctype|html|head|body|\?xml)/i.test(raw);
+
+/** Cold-start gateway failures are retried once before reporting them. */
+const isTransientGatewayFailure = (status: number, payload: any) => [502, 503, 504].includes(status) && payload === null;
+
+function retryDelayMs() {
+  const value = Number(process.env.INVOICE_BACKEND_RETRY_DELAY_MS);
+  return Number.isFinite(value) ? Math.max(0, Math.min(value, 30000)) : 10000;
+}
+
+/** Human-readable reason for a rejected upload; never leaks HTML or CSS from an intermediary. */
+function rejectionDetail(status: number, raw: string, payload: any): string {
+  const backendMessage = typeof payload?.message === "string" && payload.message.trim() ? payload.message : undefined;
+  if (backendMessage) return backendMessage;
+  const body = raw.trim();
+  if (!body) return `Backend returned HTTP ${status} with an empty response body. Confirm INVOICE_BACKEND_URL points to the running ERP backend.`;
+  if (looksLikeHtml(body)) return `The invoice service answered HTTP ${status} with an HTML error page instead of JSON, which means it is asleep, restarting or not the invoice backend. Wait about 30 seconds and upload again; if it keeps failing, check that the backend service is running and that INVOICE_BACKEND_URL is its root URL without an /api suffix.`;
+  if (payload) return `Backend returned HTTP ${status} with an unexpected payload: ${JSON.stringify(payload).slice(0, 300)}`;
+  return `Backend returned HTTP ${status} with a non-JSON response: ${body.slice(0, 300)}`;
+}
 
 function workspaceOriginAllowed(request: Request): boolean {
   const origin = request.headers.get("origin");
@@ -56,26 +77,37 @@ export async function proxyInvoiceUpload(request: Request): Promise<Response> {
   if (["jpg", "jpeg"].includes(ext || "") && head[0] === 255 && head[1] === 216) mime = "image/jpeg";
   if (!mime) return failure("Choose a valid PDF, PNG or JPEG invoice. WebP is not supported by this backend.", 415);
   try {
-    const form = new FormData();
-    form.append("file", new Blob([await file.arrayBuffer()], { type: mime }), file.name);
-    const headers = new Headers();
-    if (process.env.INVOICE_BACKEND_AUTH_TOKEN) headers.set("Authorization", `Bearer ${process.env.INVOICE_BACKEND_AUTH_TOKEN}`);
-    const response = await fetch(new URL("/api/erp/upload", backendUrl()), { method: "POST", body: form, headers, cache: "no-store", redirect: "error", signal: AbortSignal.timeout(timeoutMs()) });
-    const raw = await response.text().catch(() => "");
-    let payload: any = null;
-    try { payload = JSON.parse(raw); } catch { /* Non-JSON body from the backend or an intermediary. */ }
-    if (!response.ok || payload?.success === false) {
+    const send = async () => {
+      const form = new FormData();
+      form.append("file", new Blob([await file.arrayBuffer()], { type: mime }), file.name);
+      const headers = new Headers();
+      if (process.env.INVOICE_BACKEND_AUTH_TOKEN) headers.set("Authorization", `Bearer ${process.env.INVOICE_BACKEND_AUTH_TOKEN}`);
+      const response = await fetch(new URL("/api/erp/upload", backendUrl()), { method: "POST", body: form, headers, cache: "no-store", redirect: "error", signal: AbortSignal.timeout(timeoutMs()) });
+      const raw = await response.text().catch(() => "");
+      let payload: any = null;
+      try { payload = JSON.parse(raw); } catch { /* Non-JSON body from the backend or an intermediary. */ }
+      return { response, raw, payload };
+    };
+    let attempt = 0;
+    for (;;) {
+      const { response, raw, payload } = await send();
+      if (response.ok && payload && payload.success !== false) {
+        if ((typeof payload.extraction !== "object" && !payload.extraction_provider) || (typeof payload.emission !== "object" && payload.status !== "extraction_empty")) return failure("The backend returned an unexpected invoice response. Confirm INVOICE_BACKEND_URL points to the supplied ERP backend.", 502);
+        return Response.json({ success: true, data: normalizeInvoiceResponse(payload, file.name) });
+      }
       console.error(`[invoice-proxy] backend rejected upload (HTTP ${response.status}):`, raw.slice(0, 800));
-      const backendMessage = typeof payload?.message === "string" && payload.message.trim() ? payload.message : undefined;
-      const detail = backendMessage
-        ? backendMessage
-        : raw && raw.trim()
-          ? `Backend returned HTTP ${response.status} with a non-JSON response: ${raw.slice(0, 300)}`
-          : `Backend returned HTTP ${response.status} with an empty response body. Confirm INVOICE_BACKEND_URL points to the running ERP backend.`;
-      return failure(`Invoice backend rejected the upload (HTTP ${response.status}). ${detail}`, response.ok ? 422 : response.status);
+      // A proxy 502 with an HTML body is usually a backend still waking up or
+      // restarting; one retry turns that cold start into a successful upload.
+      if (isTransientGatewayFailure(response.status, payload) && attempt === 0) {
+        attempt++;
+        await sleep(retryDelayMs());
+        continue;
+      }
+      // An HTML or empty body is never a usable invoice answer: report it as a
+      // gateway failure with an actionable message instead of leaking markup.
+      const status = response.ok ? (payload?.success === false ? 422 : 502) : response.status;
+      return failure(`Invoice backend rejected the upload (HTTP ${status}). ${rejectionDetail(status, raw, payload)}`, status);
     }
-    if (!payload || (typeof payload.extraction !== "object" && !payload.extraction_provider) || (typeof payload.emission !== "object" && payload.status !== "extraction_empty")) return failure("The backend returned an unexpected invoice response. Confirm INVOICE_BACKEND_URL points to the supplied ERP backend.", 502);
-    return Response.json({ success: true, data: normalizeInvoiceResponse(payload, file.name) });
   } catch (error: any) {
     if (["TimeoutError", "AbortError"].includes(error?.name)) return failure("Invoice processing timed out. Check the backend/provider status before retrying this file.", 504);
     return failure("Invoice processing could not complete. Start the backend on port 5000 or check INVOICE_BACKEND_URL, its logs and provider credentials.", 502);
