@@ -28,6 +28,7 @@ import {
   Target,
   Lightbulb,
   SignOut,
+  GraduationCap,
 } from "@phosphor-icons/react";
 import type { IconProps } from "@phosphor-icons/react";
 import Logo from "@/components/ui/Logo";
@@ -100,6 +101,12 @@ const NAV_GROUPS: { label: string; items: NavEntry[] }[] = [
 ];
 
 const WORKSPACE_FALLBACK = "Workspace";
+
+const QUICK_LINKS = [
+  { label: "Dashboard", href: "/dashboard", Icon: House },
+  { label: "Activity Data", href: "/activity-data", Icon: Database },
+  { label: "University setup", href: "/onboarding", Icon: GraduationCap },
+];
 
 interface NavItemProps {
   entry: NavEntry;
@@ -250,6 +257,36 @@ export default function Sidebar({ open, onClose, active, onChange }: SidebarProp
       </div>
 
       <nav className="custom-scrollbar mt-[14px] flex flex-1 flex-col gap-[18px] overflow-y-auto px-[12px]">
+        <div>
+          <p className="mb-[6px] px-[10px] text-[10.5px] font-semibold uppercase tracking-[0.1em] text-[#a1a1aa]">
+            Quick links
+          </p>
+          <div className="flex flex-col gap-[2px]">
+            {QUICK_LINKS.map((l) => {
+              const isActive = pathname === l.href;
+              return (
+                <Link
+                  key={l.href}
+                  href={l.href}
+                  onClick={onClose}
+                  className={`relative flex w-full items-center gap-[10px] rounded-[8px] px-[10px] py-[8px] text-[13px] font-medium transition-colors duration-200 ${
+                    isActive
+                      ? "border border-teal-100/80 bg-teal-50/60 font-bold text-slate-900 shadow-[0_1px_3px_rgba(0,0,0,0.03)]"
+                      : "text-[#71717a] hover:bg-slate-50 hover:text-slate-900"
+                  }`}
+                >
+                  <l.Icon
+                    size={16}
+                    weight={isActive ? "fill" : "regular"}
+                    className="text-[#0d9488]"
+                  />
+                  <span>{l.label}</span>
+                </Link>
+              );
+            })}
+          </div>
+        </div>
+
         {NAV_GROUPS.map((group) => {
           return (
             <div key={group.label}>
