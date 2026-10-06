@@ -8,6 +8,7 @@ import { motion, AnimatePresence } from "motion/react";
 import { getUniversity, getActivityData } from "@/lib/api";
 import {
   ArrowUpRight,
+  ArrowsClockwise,
   ChartBar,
   FileText,
   Flame,
@@ -35,6 +36,7 @@ import Logo from "@/components/ui/Logo";
 import { EASE } from "@/lib/animations";
 import { useAuth } from "@/context/AuthContext";
 import { useReportingPeriodContext } from "@/context/ReportingPeriodContext";
+import { DEMO_MODE, resetDemo } from "@/lib/demo-store";
 
 export type TabId = "overview" | "footprint" | "category" | "scope1" | "scope2" | "activity-data" | "documents" | "review" | "calculations" | "reports" | "team" | "settings" | "reporting-periods" | "emission-factors" | "baseline" | "targets" | "data-quality" | "recommendations" | "notifications" | "audit-logs" | "initiatives" | "suppliers" | "materiality" | "tasks" | "voids" | "inventory" | "knowledge" | "imports" | "pcf-studies" | "supplier-requests" | "insights" | "departments";
 
@@ -315,6 +317,21 @@ export default function Sidebar({ open, onClose, active, onChange }: SidebarProp
       </nav>
 
       <div className="border-t border-black/[0.06] p-[12px]">
+        {DEMO_MODE && (
+          <button
+            type="button"
+            onClick={() => {
+              if (window.confirm("Reset your university setup and saved activities, and restore sample data?")) {
+                resetDemo();
+                window.location.assign("/onboarding");
+              }
+            }}
+            className="mb-[8px] flex w-full items-center justify-between rounded-[8px] px-[10px] py-[8px] text-[13px] font-medium text-[#71717a] transition-colors hover:bg-black/[0.03] hover:text-black"
+          >
+            Reset demo data
+            <ArrowsClockwise size={14} className="text-[#a1a1aa]" />
+          </button>
+        )}
         <Link
           href="/"
           className="mb-[8px] flex items-center justify-between rounded-[8px] px-[10px] py-[8px] text-[13px] font-medium text-[#71717a] transition-colors hover:bg-black/[0.03] hover:text-black"
