@@ -257,6 +257,27 @@ export default function Sidebar({ open, onClose, active, onChange }: SidebarProp
       </div>
 
       <nav className="custom-scrollbar mt-[14px] flex flex-1 flex-col gap-[18px] overflow-y-auto px-[12px]">
+        {NAV_GROUPS.map((group) => {
+          return (
+            <div key={group.label}>
+              <p className="mb-[6px] px-[10px] text-[10.5px] font-semibold uppercase tracking-[0.1em] text-[#a1a1aa]">
+                {group.label}
+              </p>
+              <div className="flex flex-col gap-[2px]">
+                {group.items.map((entry) => (
+                  <NavItem
+                    key={entry.id}
+                    entry={entry}
+                    active={active === entry.id}
+                    badge={entry.id === "review" ? reviewCount : undefined}
+                    onClick={() => handleNavClick(entry.id)}
+                  />
+                ))}
+              </div>
+            </div>
+          );
+        })}
+
         <div>
           <p className="mb-[6px] px-[10px] text-[10.5px] font-semibold uppercase tracking-[0.1em] text-[#a1a1aa]">
             Quick links
@@ -286,27 +307,6 @@ export default function Sidebar({ open, onClose, active, onChange }: SidebarProp
             })}
           </div>
         </div>
-
-        {NAV_GROUPS.map((group) => {
-          return (
-            <div key={group.label}>
-              <p className="mb-[6px] px-[10px] text-[10.5px] font-semibold uppercase tracking-[0.1em] text-[#a1a1aa]">
-                {group.label}
-              </p>
-              <div className="flex flex-col gap-[2px]">
-                {group.items.map((entry) => (
-                  <NavItem
-                    key={entry.id}
-                    entry={entry}
-                    active={active === entry.id}
-                    badge={entry.id === "review" ? reviewCount : undefined}
-                    onClick={() => handleNavClick(entry.id)}
-                  />
-                ))}
-              </div>
-            </div>
-          );
-        })}
 
         <Link href="/targets" className="mt-[2px] rounded-[10px] border border-slate-200 bg-slate-50 p-[12px]">
           <p className="text-[12px] font-semibold text-slate-700">University reduction goals</p>
