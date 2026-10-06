@@ -13,7 +13,7 @@ export default function DemoBanner() {
   if (!DEMO_MODE) return null;
   return (
     <div data-testid="demo-banner" className="relative z-40 flex flex-wrap items-center justify-between gap-2 border-b border-amber-200 bg-amber-50 px-4 py-2 text-xs text-amber-950">
-      <p><strong className="mr-2 uppercase tracking-wide">{dataMode === "SAMPLE" ? "Demo preview" : "Your activity data"}</strong>{dataMode === "SAMPLE" ? "Sample data until your first saved entry or import" : "Your entries sit above the sample demo data · Manual/Excel estimates use demo factors"} · Invoices use your backend · Saved in this browser</p>
+      <p><strong className="mr-2 uppercase tracking-wide">{dataMode === "SAMPLE" ? "Demo preview" : "Your activity data"}</strong>{dataMode === "SAMPLE" ? "Sample data until your first saved entry or import" : "Sample activity records excluded · Manual/Excel estimates use demo factors"} · Invoices use your backend · Saved in this browser</p>
       <div className="flex items-center gap-4 font-semibold">
         {isAuthenticated ? <>
           {onboardingCompleted && pathname !== "/dashboard" && <Link className="hover:underline" href="/dashboard">Dashboard</Link>}

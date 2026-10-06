@@ -149,13 +149,25 @@ export function seedDemo(): DemoState {
   return { version: 2, onboardingCompleted: false, dataMode: "SAMPLE", university, onboarding, collections };
 }
 
+// Sample rows are dropped only when real activity exists, so the dashboard,
+// reports and inventory always total the user's actual data.
+const SAMPLE_LEDGER_KEYS = ["activity-data", "baselines", "targets", "recommendations", "notifications",
+  "university/u_departments", "university/tasks", "university/suppliers", "university/supplier-requests",
+  "university/materiality", "university/initiatives", "university/pcf-studies"];
+
+function dropSampleLedger(state: DemoState) {
+  for (const key of SAMPLE_LEDGER_KEYS) {
+    state.collections[key] = (state.collections[key] || []).filter(row => row.demoSample !== true);
+  }
+}
+
 // The switch happens only after a valid activity is saved, never on a failed
-// upload, an extraction-only document, a preview or a profile edit. The sample
-// ledger is kept as the demo bottom of the list; user entries go on top.
+// upload, an extraction-only document, a preview or a profile edit.
 export function activateUserData(state: DemoState) {
   if (state.dataMode === "USER") return;
+  dropSampleLedger(state);
   state.dataMode = "USER";
-  audit(state, "USE_USER_DATA", "WORKSPACE", "First activity saved; user entries are added above the sample demo ledger");
+  audit(state, "USE_USER_DATA", "WORKSPACE", "First activity saved; sample ledger and sample baseline removed from active inventory");
 }
 
 function migrateDemoState(data: Row): DemoState {
@@ -179,7 +191,14 @@ export function getDemoState(): DemoState {
   if (saved) {
     try {
       const data = JSON.parse(saved);
-      if (data.version === 2 && data.collections?.["activity-data"]) return data;
+      if (data.version === 2 && data.collections?.["activity-data"]) {
+        // Workspaces saved while the sample ledger was kept alongside real
+        // entries: drop the sample rows so the dashboard shows actual data.
+        if (data.dataMode === "USER" && SAMPLE_LEDGER_KEYS.some(key => (data.collections[key] || []).some((row: Row) => row.demoSample === true))) {
+          dropSampleLedger(data as DemoState); saveDemoState(data as DemoState);
+        }
+        return data;
+      }
       if (data.version === 1 && data.collections?.["activity-data"]) {
         const migrated = migrateDemoState(data); saveDemoState(migrated); return migrated;
       }
