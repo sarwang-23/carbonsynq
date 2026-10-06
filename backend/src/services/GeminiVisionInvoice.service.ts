@@ -3,7 +3,27 @@ import { GoogleGenAI } from "@google/genai";
 import type { NormalizedInvoice, NormalizedInvoiceItem } from "../types/invoice.types.js";
 
 const GEMINI_API_KEY = process.env.GEMINI_API_KEY;
-const GEMINI_MODEL = process.env.GEMINI_MODEL || "gemini-3.8-flash";
+// PDF inline extraction is only served by the flash-lite models on this key right now
+// (gemini-3.8-flash / gemini-flash-latest return 503 UNAVAILABLE for application/pdf).
+const GEMINI_MODEL = process.env.GEMINI_MODEL || "gemini-flash-lite-latest";
+
+function getModelCandidates(): string[] {
+  const fallbackList = process.env.GEMINI_VISION_FALLBACK_MODELS || "";
+  const candidates = [
+    process.env.GEMINI_MODEL || GEMINI_MODEL,
+    ...fallbackList.split(","),
+    "gemini-flash-lite-latest",
+    "gemini-3.5-flash-lite",
+    "gemini-3.8-flash",
+    "gemini-flash-latest",
+  ]
+    .map((model) => model.trim())
+    .filter(Boolean);
+
+  const unique = [...new Set(candidates)];
+  const maxModels = Number(process.env.GEMINI_INVOICE_MAX_MODELS);
+  return unique.slice(0, Number.isFinite(maxModels) && maxModels > 0 ? maxModels : 4);
+}
 
 function getMimeType(filePath: string): string {
   const lower = filePath.toLowerCase();
@@ -98,32 +118,49 @@ Extraction guidelines:
 - Do NOT include taxes, payment terms, or balance brought forward as line items.
 - Return JSON strictly.`;
 
-  const response = await ai.models.generateContent({
-    model: GEMINI_MODEL,
-    contents: [
-      {
-        role: "user",
-        parts: [
-          {
-            inlineData: {
-              data: base64Data,
-              mimeType: mimeType,
-            },
-          },
-          {
-            text: prompt,
-          },
-        ],
-      },
-    ],
-    config: {
-      responseMimeType: "application/json",
-      temperature: 0.1,
-    },
-  });
+  const parsed = await (async () => {
+    let lastError: unknown = null;
 
-  const rawText = response.text || "";
-  const parsed = safeJsonParse(rawText);
+    for (const model of getModelCandidates()) {
+      try {
+        const response = await ai.models.generateContent({
+          model,
+          contents: [
+            {
+              role: "user",
+              parts: [
+                {
+                  inlineData: {
+                    data: base64Data,
+                    mimeType: mimeType,
+                  },
+                },
+                {
+                  text: prompt,
+                },
+              ],
+            },
+          ],
+          config: {
+            responseMimeType: "application/json",
+            temperature: 0.1,
+          },
+        });
+
+        return safeJsonParse(response.text || "");
+      } catch (error) {
+        const err = error instanceof Error ? error : new Error(String(error));
+        lastError = err;
+        console.warn(`[Gemini] invoice extraction failed on model ${model}: ${err.message.slice(0, 200)}`);
+      }
+    }
+
+    throw lastError;
+  })();
+
+  if (!parsed || typeof parsed !== "object") {
+    throw new Error("Gemini invoice extraction returned no data");
+  }
 
   const lineItems: NormalizedInvoiceItem[] = (Array.isArray(parsed.lineItems) ? parsed.lineItems : [])
     .map((item: any) => ({
