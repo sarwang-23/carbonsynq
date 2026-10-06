@@ -180,10 +180,10 @@ function getGeminiModelCandidates() {
     const candidates = [
         fromEnv,
         ...fallbackList.split(","),
-        "gemini-2.5-flash-lite",
-        "gemini-2.0-flash-lite",
-        "gemini-2.5-flash",
-        "gemini-2.0-flash",
+        "gemini-flash-lite-latest",
+        "gemini-3.5-flash-lite",
+        "gemini-3.8-flash",
+        "gemini-flash-latest",
     ]
         .map((model) => model.trim())
         .filter(Boolean);
@@ -220,8 +220,8 @@ function isRetryableGeminiError(error: any) {
  * GEMINI_API_KEY=your_key
  *
  * Render-safe recommended env:
- * GEMINI_VISION_MODEL=gemini-2.5-flash-lite
- * GEMINI_VISION_FALLBACK_MODELS=gemini-2.0-flash-lite
+ * GEMINI_VISION_MODEL=gemini-flash-lite-latest
+ * GEMINI_VISION_FALLBACK_MODELS=gemini-3.5-flash-lite,gemini-3.8-flash
  * GEMINI_VISION_TIMEOUT_MS=12000
  * GEMINI_VISION_MAX_MODELS=2
  *

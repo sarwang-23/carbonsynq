@@ -3,7 +3,7 @@ import { GoogleGenAI } from "@google/genai";
 import type { NormalizedInvoice, NormalizedInvoiceItem } from "../types/invoice.types.js";
 
 const GEMINI_API_KEY = process.env.GEMINI_API_KEY;
-const GEMINI_MODEL = process.env.GEMINI_MODEL || "gemini-2.5-flash";
+const GEMINI_MODEL = process.env.GEMINI_MODEL || "gemini-3.8-flash";
 
 function getMimeType(filePath: string): string {
   const lower = filePath.toLowerCase();

@@ -8,7 +8,7 @@
  *   GEMINI_API_KEY=your_key
  *
  * Optional env:
- *   LLM_EXTRACTION_MODEL=gemini-2.0-flash-lite   (default)
+ *   LLM_EXTRACTION_MODEL=gemini-3.5-flash-lite    (default)
  *   LLM_EXTRACTION_TIMEOUT_MS=15000
  *   DISABLE_LLM_EXTRACTION=true                  (to disable)
  */
@@ -185,7 +185,7 @@ Raw invoice text:
 ${truncatedText}
 ---`;
 
-    const modelName = (process.env.LLM_EXTRACTION_MODEL || "gemini-2.0-flash-lite").trim();
+    const modelName = (process.env.LLM_EXTRACTION_MODEL || "gemini-3.5-flash-lite").trim();
     const timeoutMs = getEnvNumber("LLM_EXTRACTION_TIMEOUT_MS", 15000);
 
     try {
