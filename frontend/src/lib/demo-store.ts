@@ -150,16 +150,12 @@ export function seedDemo(): DemoState {
 }
 
 // The switch happens only after a valid activity is saved, never on a failed
-// upload, an extraction-only document, a preview or a profile edit.
+// upload, an extraction-only document, a preview or a profile edit. The sample
+// ledger is kept as the demo bottom of the list; user entries go on top.
 export function activateUserData(state: DemoState) {
   if (state.dataMode === "USER") return;
-  for (const key of ["activity-data", "baselines", "targets", "recommendations", "notifications",
-    "university/u_departments", "university/tasks", "university/suppliers", "university/supplier-requests",
-    "university/materiality", "university/initiatives", "university/pcf-studies"]) {
-    state.collections[key] = (state.collections[key] || []).filter(row => row.demoSample !== true);
-  }
   state.dataMode = "USER";
-  audit(state, "USE_USER_DATA", "WORKSPACE", "First activity saved; sample ledger and sample baseline removed from active inventory");
+  audit(state, "USE_USER_DATA", "WORKSPACE", "First activity saved; user entries are added above the sample demo ledger");
 }
 
 function migrateDemoState(data: Row): DemoState {

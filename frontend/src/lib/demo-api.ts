@@ -265,7 +265,7 @@ async function reportPdf(s: DemoState, report: Row) {
   line(`Change for completed months vs baseline: ${summary.overview.delta.toFixed(1)}%`);
   y -= 12;
   line("Method: invoice rows preserve the backend result; sample/manual rows use demo factors.", 9);
-  line(summary.dataMode === "USER" ? "User-entered/imported activity data only; sample ledger excluded." : "Sample activity ledger; first saved activity switches to user data.", 9);
+  line(summary.dataMode === "USER" ? "User entries and imports are listed above the illustrative sample ledger; sample rows remain for the demo." : "Sample activity ledger; first saved activity switches to user data.", 9);
   line("Check geography, year, units and source before preparing an actual inventory.", 9);
   return new Blob([new Uint8Array(await pdf.save())], { type: "application/pdf" });
 }
