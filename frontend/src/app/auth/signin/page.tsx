@@ -217,7 +217,7 @@ export default function SignInPage() {
 
           {/* Form */}
           {DEMO_MODE && (
-            <div className="mb-5 rounded-xl border border-teal-200 bg-teal-50 p-4">
+            <div className="hidden mb-5 rounded-xl border border-teal-200 bg-teal-50 p-4">
               <p className="text-sm font-semibold text-teal-950">Explore Greenfield University</p>
               <p className="mt-1 text-xs leading-relaxed text-teal-800">2 campuses · Scope 1 & 2 · Activity review · PDF reports. All figures are illustrative.</p>
               <button type="button" onClick={openDemo} disabled={isPending} className="mt-3 flex w-full items-center justify-center gap-2 rounded-lg bg-teal-700 px-4 py-3 text-sm font-semibold text-white hover:bg-teal-800 disabled:opacity-60">

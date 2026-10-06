@@ -316,7 +316,8 @@ export default function Sidebar({ open, onClose, active, onChange }: SidebarProp
 
   return (
     <>
-      <aside className="sticky top-0 hidden h-dvh lg:block">{content}</aside>
+      <div aria-hidden className="hidden w-[252px] shrink-0 self-stretch lg:block" />
+      <aside className="fixed inset-y-0 left-0 z-40 hidden h-screen w-[252px] lg:block">{content}</aside>
       <AnimatePresence>
         {open && (
           <div className="fixed inset-0 z-40 lg:hidden">

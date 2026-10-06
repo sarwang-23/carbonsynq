@@ -419,12 +419,12 @@ function DesktopSidebar(props: StepSidebarProps) {
     total: activePages.length,
   };
   return (
-    <aside className="fixed inset-y-0 left-0 z-40 hidden w-[300px] flex-col border-r border-black/[0.06] bg-white/60 backdrop-blur-2xl dark:border-white/[0.08] dark:bg-[#0f1512]/80 lg:flex shadow-[4px_0_24px_-12px_rgba(0,0,0,0.06)]">
-      <div className="flex h-16 shrink-0 items-center border-b border-black/[0.06] dark:border-white/[0.08] px-5">
+    <aside className="fixed inset-y-0 left-0 z-40 hidden w-[300px] flex-col border-r border-teal-100/70 bg-gradient-to-b from-white/95 to-teal-50/70 backdrop-blur-xl lg:flex shadow-[4px_0_24px_-12px_rgba(0,0,0,0.06)]">
+      <div className="flex h-16 shrink-0 items-center border-b border-teal-100/70 px-5">
         <BrandLink />
       </div>
 
-      <div className="shrink-0 border-b border-black/[0.06] dark:border-white/[0.08]">
+      <div className="shrink-0 border-b border-teal-100/70">
         <ProgressHeader done={progress.done} total={progress.total} />
       </div>
 
@@ -437,8 +437,8 @@ function DesktopSidebar(props: StepSidebarProps) {
         />
       </nav>
 
-      <div className="flex shrink-0 items-center justify-between border-t border-black/[0.06] dark:border-white/[0.08] px-5 py-3.5">
-        <span className="text-xs text-slate-500 font-medium dark:text-slate-400">
+      <div className="flex shrink-0 items-center justify-between border-t border-teal-100/70 px-5 py-3.5">
+        <span className="text-xs text-slate-500 font-medium">
           Autosaved to browser
         </span>
         <SavedBadge state={props.savedState} />
@@ -528,7 +528,7 @@ function MobileExperience(props: StepSidebarProps) {
               animate={{ opacity: 1 }}
               exit={{ opacity: 0 }}
               onClick={() => setOpen(false)}
-              className="fixed inset-0 z-50 bg-ink/30 backdrop-blur-sm lg:hidden"
+              className="fixed inset-0 z-50 bg-slate-900/40 backdrop-blur-sm lg:hidden"
             />
             <motion.div
               key="sheet"

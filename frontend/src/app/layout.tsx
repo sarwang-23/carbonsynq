@@ -3,7 +3,6 @@ import "./globals.css";
 import { AuthProvider } from "@/context/AuthContext";
 import { ReportingPeriodProvider } from "@/context/ReportingPeriodContext";
 import { Toaster } from "sonner";
-import DemoBanner from "@/components/DemoBanner";
 import WorkspaceGate from "@/components/WorkspaceGate";
 
 export const metadata: Metadata = {
@@ -20,7 +19,6 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
       <body className="min-h-full flex flex-col">
         <AuthProvider>
           <ReportingPeriodProvider>
-            <DemoBanner />
             <WorkspaceGate>{children}</WorkspaceGate>
           </ReportingPeriodProvider>
         </AuthProvider>
