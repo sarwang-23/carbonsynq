@@ -1,0 +1,16 @@
+**/node_modules/
+**/.next/
+**/dist/
+**/*.tsbuildinfo
+**/.env
+**/.env.*
+!**/.env.example
+**/full_backup.sql
+backend/uploads/
+backend/reports/
+backend/generated/
+backend/temp-ocr/
+backend/temp-gemini-vision/
+**/*.log
+.DS_Store
+Thumbs.db

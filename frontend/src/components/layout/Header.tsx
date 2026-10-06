@@ -1,0 +1,181 @@
+"use client";
+
+import Link from "next/link";
+import { useEffect, useState } from "react";
+import { motion, useReducedMotion, useScroll, useSpring } from "motion/react";
+import Container from "@/components/ui/Container";
+import Logo from "@/components/ui/Logo";
+import { EASE } from "@/lib/animations";
+import { useAuth } from "@/context/AuthContext";
+
+const NAV_LINKS = [
+  { label: "Product", href: "#capabilities" },
+  { label: "Dashboard", href: "/dashboard" },
+  { label: "Scopes", href: "#scopes" },
+  { label: "Solutions", href: "#solutions" },
+  { label: "Sample Excel", href: "/demo/unstructured-activity-sample.xlsx" },
+];
+
+const CONTACT_EMAIL = "sales@arianetworks.com";
+
+export default function Header() {
+  const [scrolled, setScrolled] = useState(false);
+  const [open, setOpen] = useState(false);
+  const reduced = useReducedMotion();
+  const { isAuthenticated, user, logout } = useAuth();
+
+  const { scrollYProgress } = useScroll();
+  const progress = useSpring(scrollYProgress, { stiffness: 140, damping: 30, restDelta: 0.001 });
+
+  useEffect(() => {
+    const onScroll = () => setScrolled(window.scrollY > 40);
+    onScroll();
+    window.addEventListener("scroll", onScroll, { passive: true });
+    return () => window.removeEventListener("scroll", onScroll);
+  }, []);
+
+  const link =
+    "text-black text-[14px] font-semibold tracking-[-0.14px] transition-opacity duration-200 hover:opacity-60";
+
+  return (
+    <>
+      <motion.div
+        className="fixed top-0 right-0 left-0 z-[60] h-[3px] origin-left bg-[#16a34a]"
+        style={{ scaleX: progress }}
+      />
+      <motion.header
+        initial={reduced ? false : { y: -32, opacity: 0 }}
+        animate={{ y: 0, opacity: 1 }}
+        transition={{ duration: 0.7, ease: EASE }}
+        className={`fixed top-0 right-0 left-0 z-50 transition-all duration-300 ${
+          scrolled || open ? "bg-white/85 backdrop-blur-md" : "bg-transparent"
+        }`}
+      >
+        <Container className="flex h-[70px] items-center justify-between md:h-[100px]">
+          <Link href="/" className="flex items-center gap-[10px]">
+            <Logo className="h-[24px] w-auto drop-shadow-[0_2px_6px_rgba(22,163,74,0.25)]" />
+            <span className="font-display text-[22px] font-bold tracking-[-0.3px] text-black">Carbonsynq</span>
+          </Link>
+
+          <div className="flex items-center gap-[20px]">
+            <nav className="hidden items-center gap-[20px] md:flex">
+              {NAV_LINKS.filter(item => {
+                if (item.label === "Dashboard" && !isAuthenticated) return false;
+                return true;
+              }).map((item) => (
+                <a key={item.href} href={item.href} className={link}>
+                  {item.label}
+                </a>
+              ))}
+            </nav>
+
+            {isAuthenticated ? (
+              <div className="hidden md:flex items-center gap-[16px]">
+                <span className="text-[14px] font-medium text-black">
+                  {user?.firstName} {user?.lastName}
+                </span>
+                <button
+                  onClick={logout}
+                  className="h-[40px] px-[20px] items-center justify-center rounded-full bg-black text-[14px] font-semibold tracking-[-0.14px] text-white transition-colors duration-200 hover:bg-black/80"
+                >
+                  Logout
+                </button>
+              </div>
+            ) : (
+              <div className="hidden md:flex items-center gap-[12px]">
+                <Link href="/auth/signin" className={link}>
+                  Login
+                </Link>
+                <a
+                  href={`mailto:${CONTACT_EMAIL}`}
+                  className="h-[40px] w-[100px] flex items-center justify-center rounded-full bg-[#16a34a] text-[14px] font-semibold tracking-[-0.14px] text-white transition-colors duration-200 hover:bg-[#15803d]"
+                >
+                  Contact
+                </a>
+              </div>
+            )}
+
+            <button
+              onClick={() => setOpen(true)}
+              className="flex items-center justify-center text-black md:hidden"
+              aria-label="Open menu"
+            >
+              <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" width="24" height="24">
+                <path d="M3 6h18M3 12h18M3 18h18" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
+              </svg>
+            </button>
+          </div>
+        </Container>
+
+        {open && (
+          <div className="fixed inset-0 z-50 md:hidden">
+            <div className="absolute inset-0 bg-[rgba(13,13,13,0.95)] backdrop-blur-[10px]" onClick={() => setOpen(false)} />
+            <div className="absolute inset-[20px] flex flex-col rounded-[10px] bg-white">
+              <button
+                onClick={() => setOpen(false)}
+                className="absolute top-[20px] left-[20px] flex h-[24px] w-[24px] items-center justify-center text-black"
+                aria-label="Close menu"
+              >
+                <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" width="24" height="24">
+                  <path d="M6 6l12 12M18 6L6 18" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
+                </svg>
+              </button>
+
+              <motion.nav
+                initial={reduced ? false : { opacity: 0, y: 24 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.5, ease: EASE, delay: 0.08 }}
+                className="absolute top-1/2 left-[20px] flex -translate-y-1/2 flex-col gap-[25px]"
+              >
+                {NAV_LINKS.filter(item => {
+                  if (item.label === "Dashboard" && !isAuthenticated) return false;
+                  return true;
+                }).map((item) => (
+                  <a
+                    key={item.href}
+                    href={item.href}
+                    onClick={() => setOpen(false)}
+                    className="pl-[20px] font-display text-[40px] leading-[0.95] text-black"
+                  >
+                    {item.label}
+                  </a>
+                ))}
+                {!isAuthenticated && (
+                  <Link
+                    href="/auth/signin"
+                    onClick={() => setOpen(false)}
+                    className="pl-[20px] font-display text-[40px] leading-[0.95] text-black"
+                  >
+                    Login
+                  </Link>
+                )}
+              </motion.nav>
+
+              <div className="absolute right-[20px] bottom-[20px] left-[20px] flex flex-col gap-[10px]">
+                {isAuthenticated ? (
+                  <button
+                    onClick={() => {
+                      setOpen(false);
+                      logout();
+                    }}
+                    className="flex h-[60px] w-full items-center justify-center rounded-[70px] bg-black text-[16px] font-semibold text-white"
+                  >
+                    Logout
+                  </button>
+                ) : (
+                  <a
+                    href={`mailto:${CONTACT_EMAIL}`}
+                    onClick={() => setOpen(false)}
+                    className="flex h-[60px] w-full items-center justify-center rounded-[70px] bg-[#16a34a] text-[16px] font-semibold text-white"
+                  >
+                    Contact
+                  </a>
+                )}
+              </div>
+            </div>
+          </div>
+        )}
+      </motion.header>
+    </>
+  );
+}

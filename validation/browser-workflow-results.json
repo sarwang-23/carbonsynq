@@ -1,0 +1,167 @@
+{
+  "mockBackend": true,
+  "results": [
+    {
+      "name": "Fresh login opens onboarding; saved profile opens Activity Data while sample dashboard remains",
+      "detail": {
+        "campuses": 2,
+        "buildings": 4,
+        "floors": 12,
+        "periods": 2,
+        "sampleKg": 692236.9400000001
+      },
+      "passed": true
+    },
+    {
+      "name": "Onboarding draft and university fields survive refresh",
+      "passed": true
+    },
+    {
+      "name": "Manual Save & calculate replaces sample inventory and updates dashboard immediately; reload retains it",
+      "detail": {
+        "totalKg": 268,
+        "records": 1
+      },
+      "passed": true
+    },
+    {
+      "name": "Returning login resumes Activity Data without repeating completed onboarding",
+      "passed": true
+    },
+    {
+      "name": "Messy Excel preview retains samples; confirm imports and calculates only three valid rows",
+      "detail": {
+        "records": 3,
+        "totalKg": 11577
+      },
+      "passed": true
+    },
+    {
+      "name": "Six-file invoice batch preserves partial failure; save puts exact ERP results into user-only dashboard",
+      "detail": {
+        "files": 6,
+        "documents": 5,
+        "records": 2,
+        "totalKg": 9025.05
+      },
+      "passed": true
+    },
+    {
+      "name": "Saved invoice values, location and calculation survive reload without duplicate import",
+      "passed": true
+    },
+    {
+      "name": "Invoice without a valid backend result stays pending and cannot fabricate dashboard emissions",
+      "passed": true
+    },
+    {
+      "name": "PDF report snapshots contain user-only invoice totals with no illustrative seed rows",
+      "detail": {
+        "totalTonnes": 9.02505
+      },
+      "passed": true
+    },
+    {
+      "name": "Activity Data fits mobile after switching to user data",
+      "detail": {
+        "viewport": 390,
+        "page": 390
+      },
+      "passed": true
+    },
+    {
+      "name": "Changed inventory and management pages handle user data and empty baselines without runtime errors",
+      "detail": {
+        "pages": 19
+      },
+      "passed": true
+    }
+  ],
+  "errors": [],
+  "uploads": [
+    "IN_multi.pdf",
+    "IN_second.pdf",
+    "IN_third.pdf",
+    "IN_unknown.pdf",
+    "IN_empty.pdf",
+    "IN_failed.pdf"
+  ],
+  "smoke": [
+    {
+      "path": "/dashboard?tab=scope1",
+      "passed": true
+    },
+    {
+      "path": "/dashboard?tab=scope2",
+      "passed": true
+    },
+    {
+      "path": "/dashboard?tab=footprint",
+      "passed": true
+    },
+    {
+      "path": "/dashboard?tab=category",
+      "passed": true
+    },
+    {
+      "path": "/baseline",
+      "passed": true
+    },
+    {
+      "path": "/targets",
+      "passed": true
+    },
+    {
+      "path": "/recommendations",
+      "passed": true
+    },
+    {
+      "path": "/data-quality",
+      "passed": true
+    },
+    {
+      "path": "/inventory",
+      "passed": true
+    },
+    {
+      "path": "/calculations",
+      "passed": true
+    },
+    {
+      "path": "/departments",
+      "passed": true
+    },
+    {
+      "path": "/tasks",
+      "passed": true
+    },
+    {
+      "path": "/initiatives",
+      "passed": true
+    },
+    {
+      "path": "/suppliers",
+      "passed": true
+    },
+    {
+      "path": "/supplier-requests",
+      "passed": true
+    },
+    {
+      "path": "/materiality",
+      "passed": true
+    },
+    {
+      "path": "/pcf-studies",
+      "passed": true
+    },
+    {
+      "path": "/admin/campuses",
+      "passed": true
+    },
+    {
+      "path": "/admin/university",
+      "passed": true
+    }
+  ]
+}

@@ -1,0 +1,4 @@
+Category,Quantity,Unit,Date,Campus,Building,Description
+Electricity,12500,kWh,2026-10-01,Main Campus,Academic Block,Sample academic meter
+Diesel,650,L,2026-10-02,Research Campus,Research Laboratories,Sample generator fuel
+LPG,320,kg,2026-10-03,Main Campus,Student Residences,Sample canteen LPG

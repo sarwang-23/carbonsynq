@@ -1,0 +1,23 @@
+{
+  "results": [
+    {
+      "name": "tiny-manual",
+      "co2eKg": 2.68,
+      "markerY": 88.61999999999999,
+      "passed": true
+    },
+    {
+      "name": "zero-invoice",
+      "co2eKg": 0,
+      "markerY": 232,
+      "passed": true
+    },
+    {
+      "name": "scope3-invoice",
+      "co2eKg": 3600,
+      "markerY": 39.39999999999999,
+      "passed": true
+    }
+  ],
+  "errors": []
+}

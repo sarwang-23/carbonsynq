@@ -1,0 +1,56 @@
+# Keep render.yaml, frontend/ and backend/ at the Git repository root.
+# Uses your existing Supabase and emissions database; does not create a new DB.
+services:
+  - type: web
+    name: carbonsynq-invoice-backend
+    runtime: docker
+    plan: free
+    region: singapore
+    rootDir: backend
+    dockerfilePath: ./Dockerfile
+    dockerContext: .
+    healthCheckPath: /
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: PORT
+        value: "10000"
+      - key: INVOICE_BACKEND_AUTH_TOKEN
+        generateValue: true
+      - key: SUPABASE_URL
+        sync: false
+      - key: SUPABASE_SERVICE_ROLE_KEY
+        sync: false
+      - key: DATABASE_URL
+        sync: false
+      - key: GEMINI_API_KEY
+        sync: false
+
+  - type: web
+    name: carbonsynq-university-frontend
+    runtime: node
+    plan: free
+    region: singapore
+    rootDir: frontend
+    buildCommand: npm ci --include=dev --no-audit --no-fund && npm run build
+    startCommand: npm start
+    healthCheckPath: /api/health
+    envVars:
+      - key: NODE_VERSION
+        value: "24.19.0"
+      - key: NODE_ENV
+        value: production
+      - key: NEXT_PUBLIC_DEMO_MODE
+        value: "true"
+      - key: INVOICE_BACKEND_TIMEOUT_MS
+        value: "180000"
+      - key: INVOICE_BACKEND_URL
+        fromService:
+          type: web
+          name: carbonsynq-invoice-backend
+          envVarKey: RENDER_EXTERNAL_URL
+      - key: INVOICE_BACKEND_AUTH_TOKEN
+        fromService:
+          type: web
+          name: carbonsynq-invoice-backend
+          envVarKey: INVOICE_BACKEND_AUTH_TOKEN
