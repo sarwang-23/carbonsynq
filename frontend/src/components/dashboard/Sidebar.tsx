@@ -8,6 +8,7 @@ import { motion, AnimatePresence } from "motion/react";
 import { getUniversity, getActivityData } from "@/lib/api";
 import {
   ArrowUpRight,
+  ArrowsClockwise,
   ChartBar,
   FileText,
   Flame,
@@ -28,12 +29,14 @@ import {
   Target,
   Lightbulb,
   SignOut,
+  GraduationCap,
 } from "@phosphor-icons/react";
 import type { IconProps } from "@phosphor-icons/react";
 import Logo from "@/components/ui/Logo";
 import { EASE } from "@/lib/animations";
 import { useAuth } from "@/context/AuthContext";
 import { useReportingPeriodContext } from "@/context/ReportingPeriodContext";
+import { DEMO_MODE, resetDemo } from "@/lib/demo-store";
 
 export type TabId = "overview" | "footprint" | "category" | "scope1" | "scope2" | "activity-data" | "documents" | "review" | "calculations" | "reports" | "team" | "settings" | "reporting-periods" | "emission-factors" | "baseline" | "targets" | "data-quality" | "recommendations" | "notifications" | "audit-logs" | "initiatives" | "suppliers" | "materiality" | "tasks" | "voids" | "inventory" | "knowledge" | "imports" | "pcf-studies" | "supplier-requests" | "insights" | "departments";
 
@@ -100,6 +103,12 @@ const NAV_GROUPS: { label: string; items: NavEntry[] }[] = [
 ];
 
 const WORKSPACE_FALLBACK = "Workspace";
+
+const QUICK_LINKS = [
+  { label: "Dashboard", href: "/dashboard", Icon: House },
+  { label: "Activity Data", href: "/activity-data", Icon: Database },
+  { label: "University setup", href: "/onboarding", Icon: GraduationCap },
+];
 
 interface NavItemProps {
   entry: NavEntry;
@@ -271,6 +280,36 @@ export default function Sidebar({ open, onClose, active, onChange }: SidebarProp
           );
         })}
 
+        <div>
+          <p className="mb-[6px] px-[10px] text-[10.5px] font-semibold uppercase tracking-[0.1em] text-[#a1a1aa]">
+            Quick links
+          </p>
+          <div className="flex flex-col gap-[2px]">
+            {QUICK_LINKS.map((l) => {
+              const isActive = pathname === l.href;
+              return (
+                <Link
+                  key={l.href}
+                  href={l.href}
+                  onClick={onClose}
+                  className={`relative flex w-full items-center gap-[10px] rounded-[8px] px-[10px] py-[8px] text-[13px] font-medium transition-colors duration-200 ${
+                    isActive
+                      ? "border border-teal-100/80 bg-teal-50/60 font-bold text-slate-900 shadow-[0_1px_3px_rgba(0,0,0,0.03)]"
+                      : "text-[#71717a] hover:bg-slate-50 hover:text-slate-900"
+                  }`}
+                >
+                  <l.Icon
+                    size={16}
+                    weight={isActive ? "fill" : "regular"}
+                    className="text-[#0d9488]"
+                  />
+                  <span>{l.label}</span>
+                </Link>
+              );
+            })}
+          </div>
+        </div>
+
         <Link href="/targets" className="mt-[2px] rounded-[10px] border border-slate-200 bg-slate-50 p-[12px]">
           <p className="text-[12px] font-semibold text-slate-700">University reduction goals</p>
           <p className="mt-1 text-[11px] leading-snug text-slate-500">View saved targets and progress against the baseline.</p>
@@ -278,6 +317,21 @@ export default function Sidebar({ open, onClose, active, onChange }: SidebarProp
       </nav>
 
       <div className="border-t border-black/[0.06] p-[12px]">
+        {DEMO_MODE && (
+          <button
+            type="button"
+            onClick={() => {
+              if (window.confirm("Reset your university setup and saved activities, and restore sample data?")) {
+                resetDemo();
+                window.location.assign("/onboarding");
+              }
+            }}
+            className="mb-[8px] flex w-full items-center justify-between rounded-[8px] px-[10px] py-[8px] text-[13px] font-medium text-[#71717a] transition-colors hover:bg-black/[0.03] hover:text-black"
+          >
+            Reset demo data
+            <ArrowsClockwise size={14} className="text-[#a1a1aa]" />
+          </button>
+        )}
         <Link
           href="/"
           className="mb-[8px] flex items-center justify-between rounded-[8px] px-[10px] py-[8px] text-[13px] font-medium text-[#71717a] transition-colors hover:bg-black/[0.03] hover:text-black"
