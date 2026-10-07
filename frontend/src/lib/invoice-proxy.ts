@@ -14,17 +14,41 @@ const failure = (message: string, status: number) => Response.json({ success: fa
 const sleep = (ms: number) => new Promise(resolve => setTimeout(resolve, ms));
 const looksLikeHtml = (raw: string) => /^\s*<(!doctype|html|head|body|\?xml)/i.test(raw);
 
-/** Cold-start gateway failures are retried once before reporting them. */
+/** Cold-start gateway failures are retried until the hosting platform wakes the backend. */
 const isTransientGatewayFailure = (status: number, payload: any) => [502, 503, 504].includes(status) && payload === null;
 
-function retryDelayMs() {
-  const value = Number(process.env.INVOICE_BACKEND_RETRY_DELAY_MS);
-  return Number.isFinite(value) ? Math.max(0, Math.min(value, 30000)) : 10000;
-}
-/** Total upload attempts across a transient gateway failure (default 3 -> 2 backoff retries). */
+/** Total upload attempts across a transient gateway failure (default 3 -> 2 wake-timed retries). */
 function maxAttempts() {
   const value = Number(process.env.INVOICE_BACKEND_MAX_ATTEMPTS);
   return Number.isFinite(value) ? Math.max(1, Math.min(value, 5)) : 3;
+}
+/** Total time budget spent polling a sleeping backend's root endpoint (default 2 min). */
+function wakeBudgetMs() {
+  const value = Number(process.env.INVOICE_BACKEND_WAKE_BUDGET_MS);
+  return Number.isFinite(value) ? Math.max(1000, Math.min(value, 300000)) : 120000;
+}
+/** Gap between health polls while the backend wakes up (default 5 s). */
+function wakePollMs() {
+  const value = Number(process.env.INVOICE_BACKEND_WAKE_POLL_MS);
+  return Number.isFinite(value) ? Math.max(500, Math.min(value, 30000)) : 5000;
+}
+
+/**
+ * Free-hosted billers (Render free tier, etc.) sleep after inactivity and wake
+ * within roughly a minute. Poll their root endpoint until it answers success
+ * JSON so the follow-up upload succeeds instead of surfacing a gateway 502.
+ */
+async function waitForBackendReady(budgetMs: number, pollMs: number): Promise<boolean> {
+  const deadline = Date.now() + budgetMs;
+  while (Date.now() < deadline) {
+    try {
+      const response = await fetch(new URL("/", backendUrl()), { cache: "no-store", redirect: "error", signal: AbortSignal.timeout(Math.min(pollMs, 8000)) });
+      const result = await response.json().catch(() => null);
+      if (response.ok && result?.success === true) return true;
+    } catch { /* Host is still starting the backend. */ }
+    await sleep(pollMs);
+  }
+  return false;
 }
 
 /** Human-readable reason for a rejected upload; never leaks HTML or CSS from an intermediary. */
@@ -101,12 +125,17 @@ export async function proxyInvoiceUpload(request: Request): Promise<Response> {
         return Response.json({ success: true, data: normalizeInvoiceResponse(payload, file.name) });
       }
       console.error(`[invoice-proxy] backend rejected upload (HTTP ${response.status}):`, raw.slice(0, 800));
-      // A proxy 502 with an HTML body is usually a backend still waking up or
-      // restarting; retry with backoff so a long cold start becomes a successful
-      // upload instead of a user-visible error.
+      // A gateway 502 with an HTML body is usually a free-hosted backend that
+      // went to sleep. Wake it by polling its root endpoint, then retry the
+      // upload; the whole cycle is bounded by the wake budget.
       if (isTransientGatewayFailure(response.status, payload) && attempt < maxAttempts() - 1) {
         attempt++;
-        await sleep(retryDelayMs() * attempt);
+        const ready = await waitForBackendReady(wakeBudgetMs(), wakePollMs());
+        console.error(`[invoice-proxy] wake poll finished: backend ready=${ready}; retrying upload (${attempt}/${maxAttempts()})`);
+        if (!ready) {
+          const status = response.status;
+          return failure(`Invoice backend rejected the upload (HTTP ${status}). ${rejectionDetail(status, raw, payload)}`, status);
+        }
         continue;
       }
       // An HTML or empty body is never a usable invoice answer: report it as a
