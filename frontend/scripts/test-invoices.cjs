@@ -94,7 +94,7 @@ async function check(name, task) { await task(); checks++; console.log(`PASS ${n
     const htmlGateway = () => new Response("<html>wrong service</html>", { status: 502 });
     global.fetch = async () => { gatewayAttempts++; return htmlGateway(); };
     const gateway = await proxyInvoiceUpload(request(pdf()));
-    assert.equal(gateway.status, 502); assert.equal(gatewayAttempts, 2, "transient gateway failures are retried once");
+    assert.equal(gateway.status, 502); assert.equal(gatewayAttempts, 3, "transient gateway failures are retried twice by default");
     const gatewayMessage = (await gateway.json()).message;
     assert.ok(!gatewayMessage.includes("<html"), "HTML from an intermediary is never shown to the user");
     assert.match(gatewayMessage, /HTML error page/);
@@ -103,6 +103,13 @@ async function check(name, task) { await task(); checks++; console.log(`PASS ${n
     const wrongService = await proxyInvoiceUpload(request(pdf()));
     assert.equal(wrongService.status, 502); assert.equal(gatewayAttempts, 1, "a healthy-looking HTML answer is not retried");
     assert.match((await wrongService.json()).message, /HTML error page/);
+    gatewayAttempts = 0;
+    process.env.INVOICE_BACKEND_MAX_ATTEMPTS = "2";
+    global.fetch = async () => { gatewayAttempts++; return htmlGateway(); };
+    const defaultMessage = await (await proxyInvoiceUpload(request(pdf()))).json();
+    assert.equal(gatewayAttempts, 2, "INVOICE_BACKEND_MAX_ATTEMPTS=2 allows a single retry");
+    assert.match(defaultMessage.message, /retried automatically/);
+    delete process.env.INVOICE_BACKEND_MAX_ATTEMPTS;
     gatewayAttempts = 0;
     global.fetch = async () => ++gatewayAttempts === 1 ? htmlGateway() : Response.json(raw);
     assert.equal((await proxyInvoiceUpload(request(pdf()))).status, 200); assert.equal(gatewayAttempts, 2);

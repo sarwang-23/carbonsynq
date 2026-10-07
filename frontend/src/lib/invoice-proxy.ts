@@ -21,6 +21,11 @@ function retryDelayMs() {
   const value = Number(process.env.INVOICE_BACKEND_RETRY_DELAY_MS);
   return Number.isFinite(value) ? Math.max(0, Math.min(value, 30000)) : 10000;
 }
+/** Total upload attempts across a transient gateway failure (default 3 -> 2 backoff retries). */
+function maxAttempts() {
+  const value = Number(process.env.INVOICE_BACKEND_MAX_ATTEMPTS);
+  return Number.isFinite(value) ? Math.max(1, Math.min(value, 5)) : 3;
+}
 
 /** Human-readable reason for a rejected upload; never leaks HTML or CSS from an intermediary. */
 function rejectionDetail(status: number, raw: string, payload: any): string {
@@ -28,7 +33,7 @@ function rejectionDetail(status: number, raw: string, payload: any): string {
   if (backendMessage) return backendMessage;
   const body = raw.trim();
   if (!body) return `Backend returned HTTP ${status} with an empty response body. Confirm INVOICE_BACKEND_URL points to the running ERP backend.`;
-  if (looksLikeHtml(body)) return `The invoice service answered HTTP ${status} with an HTML error page instead of JSON, which means it is asleep, restarting or not the invoice backend. Wait about 30 seconds and upload again; if it keeps failing, check that the backend service is running and that INVOICE_BACKEND_URL is its root URL without an /api suffix.`;
+  if (looksLikeHtml(body)) return `The invoice service answered HTTP ${status} with an HTML error page instead of JSON, which means it is asleep, restarting or not the invoice backend. The upload was retried automatically; if it still fails, check that the backend service is running and that INVOICE_BACKEND_URL is its root URL without an /api suffix.`;
   if (payload) return `Backend returned HTTP ${status} with an unexpected payload: ${JSON.stringify(payload).slice(0, 300)}`;
   return `Backend returned HTTP ${status} with a non-JSON response: ${body.slice(0, 300)}`;
 }
@@ -97,10 +102,11 @@ export async function proxyInvoiceUpload(request: Request): Promise<Response> {
       }
       console.error(`[invoice-proxy] backend rejected upload (HTTP ${response.status}):`, raw.slice(0, 800));
       // A proxy 502 with an HTML body is usually a backend still waking up or
-      // restarting; one retry turns that cold start into a successful upload.
-      if (isTransientGatewayFailure(response.status, payload) && attempt === 0) {
+      // restarting; retry with backoff so a long cold start becomes a successful
+      // upload instead of a user-visible error.
+      if (isTransientGatewayFailure(response.status, payload) && attempt < maxAttempts() - 1) {
         attempt++;
-        await sleep(retryDelayMs());
+        await sleep(retryDelayMs() * attempt);
         continue;
       }
       // An HTML or empty body is never a usable invoice answer: report it as a
