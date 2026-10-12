@@ -105,7 +105,7 @@ export function seedDemo(): DemoState {
       createdAt: "2026-10-02T09:00:00.000Z", calculations: [], rejectionReason: status === "REJECTED" ? "Duplicate entry" : null,
     });
   }
-  const university = { id: DEMO_ORG, name: "Greenfield University", code: "GFU", country: "India", city: "Pune", studentCount: 12000, staffCount: 1450, areaSqm: 90000 };
+  const university = { id: DEMO_ORG, name: "Galgotias University", code: "GU", country: "India", city: "Greater Noida", studentCount: 12000, staffCount: 1450, areaSqm: 90000 };
   const onboarding = {
     id: "demo-onboarding", organisationId: DEMO_ORG, createdAt: "2026-04-01T00:00:00.000Z", updatedAt: "2026-10-01T00:00:00.000Z",
     company: { legalName: university.name, brandName: university.name, registrationNumber: "DEMO", industry: "education", subsector: "higher-education", website: "", orgStructure: "multi", consolidationApproach: "operational-control", employeeCount: "1450", annualRevenue: "", fiscalYearEnd: "March" },
